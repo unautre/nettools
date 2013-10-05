@@ -27,14 +27,13 @@ struct packet {
 };
 
 unsigned short checksum(struct packet*, size_t);
+void sendping(int sock, uint16_t id, uint16_t sequence, char* message, size_t msglen, struct sockaddr_in* dest);
 
 int main(int argc, char** argv){
 	int sock;
 	struct hostent *hname;
 	struct protoent *proto;
 	struct sockaddr_in dest;
-	struct packet *pack;
-	size_t packlen;
 
 	if(argc < 2){
 		printf("Usage: %s address\nRight now, it only sends PING packet, doesn't receive them.\n", argv[0]);
@@ -48,18 +47,23 @@ int main(int argc, char** argv){
 	assert(sock = socket(AF_INET, SOCK_RAW, proto->p_proto)); /* probably IPPROTO_ICMP */
 
 	/* on va envoyer un paquet ICMP ping. */
-	pack = calloc(packlen = 64, sizeof(char));
-	pack->hdr.type = 8; /* ECHO message */
-	pack->hdr.code = 0;
-	pack->hdr.checksum = 0;
-	pack->hdr.echo.id = 0xD34D;
-	pack->hdr.echo.sequence = 0xBEEF;
-	sprintf(pack->msg, "abcdefABCDEF");
-	pack->hdr.checksum = checksum(pack, packlen);
-	assert(sendto(sock, pack, packlen, 0, (struct sockaddr*)&dest, sizeof(dest)) > 0);
+	sendping(sock, (uint16_t)0xD34D, (uint16_t)0xBEEF, "hello world !\n", 14, &dest);
 
 	close(sock);
 	return 0;
+}
+
+void sendping(int sock, uint16_t id, uint16_t sequence, char* message, size_t msglen, struct sockaddr_in* dest){
+	size_t len;
+	struct packet *pack = calloc(len = sizeof(pack->hdr) + msglen, sizeof(char));
+	pack->hdr.type = 8;
+	pack->hdr.code = 0;
+	pack->hdr.checksum = 0;
+	pack->hdr.echo.id = id;
+	pack->hdr.echo.sequence = sequence;
+	memcpy(pack->msg, message, msglen);
+	pack->hdr.checksum = checksum(pack, len);
+	assert(sendto(sock, pack, len, 0, (struct sockaddr*)dest, sizeof(*dest)) > 0);
 }
 
 /* TODO: improve this. You can probably use 64bits or 32bits integers to speed up this. */
