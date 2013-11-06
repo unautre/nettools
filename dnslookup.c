@@ -30,7 +30,7 @@ int main(int argc, char **argv){
 	if(status) fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
 
 	for(;res != NULL; res = res->ai_next){
-		char* inp_addr = (char*)res->ai_addr + 4;
+		char* inp_addr = (char*)res->ai_addr + 4; /* sale ! */
 		if(inet_ntop(res->ai_family, inp_addr, buf, sizeof(buf)) == NULL)
 			perror("inet_ntop");
 		else

@@ -120,13 +120,14 @@ size_t RawRead(char* buf, size_t l){
 
 	/* on affiche toutes les données brutes. */
 	putchar('\n');
-	for(; l >= PAS; l -= PAS, data += PAS){
+	for(; l > 0; l -= PAS, data += PAS){
 		printf("%04X\t", (unsigned int)(data - buf));
 		for(i = 0;i<PAS && i < l;i++)
 			printf("%02X ", data[i] & 0xFF);
 		for(i = 0;i<PAS && i < l;i++)
 			printf(isalnum(data[i]) ? "%c" : ".", data[i] & 0xFF);
 		putchar('\n');
+		if(l <= PAS) break;
 	}
 
 	return old_l;
@@ -146,7 +147,7 @@ size_t EthRead(char* buf, size_t l){
 	printf(" type: %04X %s\n", Eth->type, (Eth->type == 8) ? "(IP)" : "");
 	data += sizeof(struct eth_hdr);
 
-	if(Eth->type == 8 || 1)
+	if(Eth->type == 8)
 		data += IpRead(data, l - sizeof(struct eth_hdr));
 
 	return (size_t)(data - buf);
@@ -160,14 +161,14 @@ size_t IpRead(char* buf, size_t l){
 	assert(l > sizeof(struct ip_hdr));
 	/* Affichage du header IP */
 	printf("IPv%d - %d bytes total (%d for header) - TTL: %d - protocol: %d\n",
-		(Ip->vhl >> 4), Ip->len, (Ip->vhl & 0x0F)*4, Ip->ttl, Ip->p);
+		(Ip->vhl >> 4), ntohs(Ip->len), (Ip->vhl & 0x0F)*4, Ip->ttl, Ip->p);
 	printf("Flags: ");
-	if(Ip->flags & IP_RF) printf("RF");
-	if(Ip->flags & IP_DF) printf("DF");
-	if(Ip->flags & IP_MF) printf("MF");
+	if(Ip->flags & IP_RF) printf("RF ");
+	if(Ip->flags & IP_DF) printf("DF ");
+	if(Ip->flags & IP_MF) printf("MF ");
 
-	printf("\nFrom %s", inet_ntoa(Ip->src));
-	printf(" to %s", inet_ntoa(Ip->dst));
+	printf("- From %s", inet_ntoa(Ip->src));
+	printf(" to %s\n", inet_ntoa(Ip->dst));
 	data += sizeof(struct ip_hdr);
 
 	switch(Ip->p){
@@ -189,7 +190,7 @@ size_t TcpRead(char* buf, size_t l){
 
 	assert(l > sizeof(struct tcp_hdr));
 	/* Affichage du header tcp. */
-	printf("Port %d to %d - flags:", Tcp->src_port, Tcp->dst_port);
+	printf("Port %d to %d - flags:", ntohs(Tcp->src_port), ntohs(Tcp->dst_port));
 	if(Tcp->flags & TCP_FIN) printf("FIN");
 	if(Tcp->flags & TCP_SYN) printf("SYN");
 	if(Tcp->flags & TCP_RST) printf("RST");
