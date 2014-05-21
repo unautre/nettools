@@ -14,7 +14,6 @@
 #include <netdb.h>
 #include <errno.h>
 
-#define TOTEXT(x) #x
 #define assert(p) if(!(p)){ fprintf(stderr, "Assertion "#p" line (%d:%s) failed: %s\n", __LINE__, __FILE__, strerror(errno)); return 0; }
 
 size_t EthRead(char*, size_t);

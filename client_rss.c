@@ -25,12 +25,9 @@ int main(int argc, char **argv){
 			fprintf(stderr, "Erreur: %s\n", gai_strerror(c));
 			exit(-1); }
 		for(it = res; it != NULL; it = it->ai_next){
-			sock = socket(it->ai_family, it->ai_socktype,
-				it->ai_protocol);
-			if(connect(sock, it->ai_addr, it->ai_addrlen) == 0)
-				break;
-			close(sock);
-		}
+			sock = socket(it->ai_family, it->ai_socktype, it->ai_protocol);
+			if(connect(sock, it->ai_addr, it->ai_addrlen) == 0) break;
+			close(sock); }
 		if(it == NULL){
 			fprintf(stderr, "Erreur: connexion impossible.\n");
 			exit(-1); }

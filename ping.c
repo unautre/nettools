@@ -20,10 +20,11 @@ struct packet {
 			uint16_t sequence;
 		} echo;		
 	} hdr;
-	#if __STDC_VERSION__ >= 199901L
+	#if __STDC_VERSION__ < 199901L
 	/* requires C99 */
-	char msg[];
+	#error "Requires C99".
 	#endif
+	char msg[];
 };
 
 unsigned short checksum(struct packet*, size_t);
