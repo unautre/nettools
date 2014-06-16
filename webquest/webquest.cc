@@ -1,22 +1,11 @@
 #include <iostream>
 #include <string>
-
-class URL {
-	std::string protocol, hostname, path;
-	int port;
-public:
-	URL(); // constructeur vide
-	URL(const std::string&); // à partir d'une chaine
-	URL(const URL&); // constructeur de recopie
-
-	operator std::string() const;
-	std::string getHost(void) const;
-	std::string getProto(void) const;
-	std::string getPath(void) const;
-	int getPort(void) const;
-
-	friend std::ostream& operator<<(std::ostream&, const URL&);
-};
+#include <ext/stdio_filebuf.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <netdb.h>
+#include "webquest.hpp"
 
 using namespace std;
 
@@ -28,7 +17,7 @@ URL::URL(const string& s): URL() {
 	  ^-0  123   ^-4   5 6      7	
 	TODO: add error handling. */
 	int etat = 0;
-	for(int i = 0;i<s.size();i++){
+	for(int i = 0;i<(ssize_t)s.size();i++){
 		switch(etat){
 			case 0: if(s[i] == ':') etat = 1;
 				else if(s[i] == '.'){ std::swap(protocol, hostname); etat = 4; hostname += s[i]; }
@@ -74,14 +63,52 @@ ostream& operator<<(ostream& out, const URL& u){
 	return out << (string)u;
 }
 
-int main(void){
-	string s;
+int URL::getSock(){
+	struct addrinfo *res, *it;
+	int sock, ret;
+	string proto = 	(port > 0) ? to_string(port) :
+			(protocol != "") ? protocol :
+			"http";
 
-	do{
-		cin >> s;
-		URL u(s);
-		cout << u << endl;
-	}while(s != "" && cin);
+	if((ret = getaddrinfo(hostname.c_str(), proto.c_str(), NULL, &res))){
+		cerr << "getaddrinfo: " << gai_strerror(ret) << endl;
+		return -1; // TODO: raise exception.
+	}
+
+	for(it = res; it != NULL; it = it->ai_next){
+		sock = socket(it->ai_family, it->ai_socktype, it->ai_protocol);
+		if(sock == -1) continue;
+		if(connect(sock, it->ai_addr, it->ai_addrlen) == 0) break;
+		close(sock);
+	}
+
+	if(it == NULL){ cerr << "Couldn't connect." << endl; return -1; }
+
+	freeaddrinfo(res);
+	return sock;
+}
+
+std::string URL::query(){
+	return "";
+}
+
+int main(int argc, char **argv){
+	if(argc <= 1) return 0;
+	URL u(argv[1]);
+	int sock = u.getSock();
+	string s;
+	__gnu_cxx::stdio_filebuf<char> filebuf(sock, std::ios::in | std::ios::out);
+	iostream f(&filebuf);
+
+	f << "GET " << u.getPath() << " HTTP/1.1" << endl;
+	f << "Connection: close" << endl;
+	f << "Host: " << u.getHost() << endl;
+	f << endl;
+
+	while(!f.eof()){
+		getline(f, s);
+		cout << s << endl;
+	}
 
 	return 0;
 }
